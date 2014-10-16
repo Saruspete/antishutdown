@@ -1,0 +1,84 @@
+#!/bin/sh
+# 
+# AntiShutdown Script to prevent shutdown or reboot of a server
+# 
+# chkconfig: 2345 99 00
+# description: Prohibits the reboot or shutdown or a server
+#
+### BEGIN INIT INFO
+# Provides: $AntiShutdown
+### END INIT INFO
+
+typeset called="$0"
+typeset runlevel_msg="$(who -r)"
+typeset runlevel="${runlevel_msg#*run-level }"
+typeset rebootfile=/root/.rebootallowed
+
+typeset mail_dst="adrien.mahieux-ext@socgen.com"
+typeset mail_sub="[YOUSHALLNOTSHUTDOWN] $(uname -n) entering runlevel $runlevel"
+typeset mail_txt="This is script $0 on $(uname -n)
+
+Currently connected users :
+$(who)
+
+Running processes :
+$(ps auxf)
+
+
+Have a nice day
+"
+
+
+function checksys {
+	typeset myname="${called##*/}"
+	myname="${myname#S??}"
+	
+	typeset basepath="/var/lock/subsys"
+	typeset reqfile="$basepath/$myname"
+	[ -f "$reqfile" ] || touch "$reqfile"
+	
+	[ -f "$reqfile" ]
+}
+
+
+function verifyshutdown {
+	# YOU SHALL NOT STOP ME !
+	if [ ! -e "$rebootfile" ]; then
+	
+		typeset -i parentpid="$(ps -p $$ -o ppid=)"
+		cat <<- EOT | wall
+		##########################################################
+		################ SHUTDOWN CANCELED #######################
+		##########################################################
+		     Unable to find file '$rebootfile'
+		##########################################################
+		################ SHUTDOWN CANCELED #######################
+		##########################################################
+		EOT
+		
+		echo "$mail_txt" | mail -s "$mail_sub (cancelled)" "$mail_dst"
+		
+		echo "init 3" | at now + 1 minute
+		kill -9 $parentpid
+	else
+		rm $rebootfile
+		echo "$mail_txt" | mail -s "$mail_sub (allowed)" "$mail_dst"
+		
+	fi
+	
+}
+
+
+case $1 in
+	start)
+		checksys
+		;;
+	stop)
+		verifyshutdown
+		;;
+
+	*)
+		echo "Usage: $0 <start|stop>"
+		exit 1
+		;;
+esac
