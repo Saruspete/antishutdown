@@ -14,7 +14,7 @@ typeset runlevel_msg="$(who -r)"
 typeset runlevel="${runlevel_msg#*run-level }"
 typeset rebootfile=/root/.rebootallowed
 
-typeset mail_dst="adrien.mahieux-ext@socgen.com"
+typeset mail_dst="adrien.mahieux@gmail.com"
 typeset mail_sub="[YOUSHALLNOTSHUTDOWN] $(uname -n) entering runlevel $runlevel"
 typeset mail_txt="This is script $0 on $(uname -n)
 
