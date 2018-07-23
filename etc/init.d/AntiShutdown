@@ -9,14 +9,18 @@
 # Provides: $AntiShutdown
 ### END INIT INFO
 
-typeset called="$0"
-typeset runlevel_msg="$(who -r)"
-typeset runlevel="${runlevel_msg#*run-level }"
-typeset rebootfile=/root/.rebootallowed
+set -o nounset
+set -o noclobber
 
-typeset mail_dst="adrien.mahieux@gmail.com"
-typeset mail_sub="[YOUSHALLNOTSHUTDOWN] $(uname -n) entering runlevel $runlevel"
-typeset mail_txt="This is script $0 on $(uname -n)
+
+CALLED="$0"
+RUNLEVEL_MSG="$(who -r)"
+RUNLEVEL="${RUNLEVEL_MSG#*run-level }"
+REBOOTFILE=/root/.rebootallowed
+
+MAIL_DST="adrien.mahieux@gmail.com"
+MAIL_SUB="[YOUSHALLNOTSHUTDOWN] $(uname -n) entering runlevel $RUNLEVEL"
+MAIL_TXT="This is script $0 on $(uname -n)
 
 Currently connected users :
 $(who)
@@ -29,47 +33,47 @@ Have a nice day
 "
 
 
-function checksys {
-	typeset myname="${called##*/}"
-	myname="${myname#S??}"
+checksys () {
+	_myname="${CALLED##*/}"
+	_myname="${_myname#S??}"
 	
-	typeset basepath="/var/lock/subsys"
-	typeset reqfile="$basepath/$myname"
-	[ -f "$reqfile" ] || touch "$reqfile"
+	_basepath="/var/lock/subsys"
+	_reqfile="$_basepath/$_myname"
+	[ -f "$_reqfile" ] || touch "$_reqfile"
 	
-	[ -f "$reqfile" ]
+	[ -f "$_reqfile" ]
 }
 
 
-function verifyshutdown {
+verifyshutdown () {
 	# YOU SHALL NOT STOP ME !
-	if [ ! -e "$rebootfile" ]; then
+	if [ ! -e "$REBOOTFILE" ]; then
 	
-		typeset -i parentpid="$(ps -p $$ -o ppid=)"
+		_parentpid="$(ps -p $$ -o ppid=)"
 		cat <<- EOT | wall
 		##########################################################
 		################ SHUTDOWN CANCELED #######################
 		##########################################################
-		     Unable to find file '$rebootfile'
+		     Unable to find file '$REBOOTFILE'
 		##########################################################
 		################ SHUTDOWN CANCELED #######################
 		##########################################################
 		EOT
 		
-		echo "$mail_txt" | mail -s "$mail_sub (cancelled)" "$mail_dst"
+		echo "$MAIL_TXT" | mail -s "$MAIL_SUB (cancelled)" "$MAIL_DST"
 		
 		echo "init 3" | at now + 1 minute
-		kill -9 $parentpid
+		kill -9 $_parentpid
 	else
-		rm $rebootfile
-		echo "$mail_txt" | mail -s "$mail_sub (allowed)" "$mail_dst"
+		rm $REBOOTFILE
+		echo "$MAIL_TXT" | mail -s "$MAIL_SUB (allowed)" "$MAIL_DST"
 		
 	fi
 	
 }
 
 
-case $1 in
+case "${1:-}" in
 	start)
 		checksys
 		;;
